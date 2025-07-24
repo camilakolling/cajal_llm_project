@@ -300,7 +300,7 @@ def ridge_regression_fit_torch(X, y, alpha, batch_size=512):
 import numpy as np
 from sklearn.linear_model import Ridge
 
-def ridge_regression_fit_sklearn(X, y, alpha, batch_size: int = 4000):
+def ridge_regression_fit_sklearn(X, y, alpha, batch_size: int = 4000, device='cpu'):
     """
     Ridge regression with separate alpha per target using scikit-learn.
 
@@ -330,7 +330,7 @@ def ridge_regression_fit_sklearn(X, y, alpha, batch_size: int = 4000):
     model = Ridge(alpha=alpha, fit_intercept=False, solver='auto')
     model.fit(X, y)
     # model.coef_ is (n_targets, n_features); transpose to (n_features, n_targets)
-    return torch.from_numpy(model.coef_.T).to(device="cuda", dtype=torch.float32)
+    return torch.from_numpy(model.coef_.T).to(device=device, dtype=torch.float32)
 
 
 def ridge_regression_predict_torch(X, w):
@@ -463,7 +463,7 @@ def nested_blocked_cv(X, y, split_function="blocked", block_labels=None, split_i
             y_test_outer_normalized = (y_test_outer - y_means_outer) / (y_stds_outer + 1e-8)
             X_test_outer_normalized = (X_test_outer - X_means_outer) / (X_stds_outer + 1e-8)
 
-            alpha_tensor = torch.from_numpy(np.array(best_alphas_for_fold)).to("cuda", dtype=torch.float32)
+            alpha_tensor = torch.from_numpy(np.array(best_alphas_for_fold)).to(device, dtype=torch.float32)
             w_final = ridge_regression_fit_sklearn(X_train_outer_normalized, y_train_outer_normalized, alpha_tensor, batch_size=16)
             y_pred_outer = ridge_regression_predict_torch(X_test_outer_normalized, w_final)
             pbar.update()

@@ -8,10 +8,13 @@ import numpy as np
 import torch
 from transformers import AutoTokenizer, AutoModel
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(f"Using device: {device}")
+
 # 0. load fmri data and annotation
-data_path_prefix = "/BRAIN/neuroai_project/work/Encoding_models/data/HP_data/fMRI"
+data_path_prefix = "/BRAIN/neuroai_project/work/cajal_llm_project/data/HP_data/fMRI"
 HF_home = "/SWS/llms/nobackup/"
-results_path_prefix = "/BRAIN/neuroai_project/work/Encoding_models/results"
+results_path_prefix = "/BRAIN/neuroai_project/work/cajal_llm_project/results"
 
 fmri_data = np.load(f"{data_path_prefix}/data_subject_I.npy", allow_pickle=True) # raw fmri data for one subject
 fmri_time = np.load(f"{data_path_prefix}/time_fmri.npy", allow_pickle=True) # timing of each fmri TRs in seconds
@@ -29,7 +32,7 @@ assert len(word_times.tolist()) == len(LLM_input_sequence), "different length" #
 # 2. compute LLM representations for these words.
 model_name = "meta-llama/Llama-3.2-1B"
 tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True, cache_dir=HF_home)
-model = AutoModel.from_pretrained(model_name, cache_dir=HF_home).to("cuda")
+model = AutoModel.from_pretrained(model_name, cache_dir=HF_home).to(device)
 print("Loaded model and tokenizer.")
 
 strings_to_find = LLM_input_sequence # we search for these words in sequential order in the full prompt to obtain avg representations for these.
@@ -48,8 +51,8 @@ print("Computed word level representations for the input sequence.")
 layer_idx = -7 
 interpolated_representations = lanczosinterp2D(
     representations[layer_idx].to("cpu"),             # shape: (n_samples_input, n_dim)
-    word_times,      # shape: (n_samples_input,)
-    fmri_time,     # shape: (n_samples_target,)
+    oldtime=word_times,      # shape: (n_samples_input,)
+    newtime=fmri_time,     # shape: (n_samples_target,)
     window=3,         # (optional) number of lobes for the window
     cutoff_mult=1.0,  # (optional) cutoff frequency multiplier
     rectify=False     # (optional) rectification
@@ -79,8 +82,8 @@ print(f"Deleted edges from the LLM representations to match the filtering of fMR
 # 6. Run the nested blocked cross-validation to find the best alpha per voxel for ridge regression.
 
 # Convert data to torch tensors and move to GPU
-X = torch.tensor(final_representations, dtype=torch.float32, device="cuda") # shape (n_TRs, n_features)
-y = torch.tensor(fmri_data, dtype=torch.float32, device="cuda") # shape (n_TRs, n_voxels)
+X = torch.tensor(final_representations, dtype=torch.float32, device=device) # shape (n_TRs, n_features)
+y = torch.tensor(fmri_data, dtype=torch.float32, device=device) # shape (n_TRs, n_voxels)
 
 # Set parameters for crossvalidation
 split_function = "blocked" # divide data into uniform folds
@@ -90,7 +93,6 @@ n_splits_inner = 3   # Three blocks for inner CV (must be larger than 1)
 gap = 15 # number of TRs to skip/discard in between train and test to avoid leakage
 alphas = [0.1,1,10,100,1000,10000] # default vals from https://github.com/mtoneva/brain_language_nlp/blob/master/utils/utils.py 
 
-device = "cuda"
 print("Starting nested blocked cross-validation to find the best alpha per voxel for ridge regression")
 # Obtain the best ridge regression penalties for each voxel independently (~25k alphas)
 best_alphas, outer_scores = nested_blocked_cv(
@@ -116,10 +118,10 @@ X_test_normalized = (X[-300:] - X_means) / (X_stds + 1e-8)
 y_test_normalized = (y[-300:] - y_means) / (y_stds + 1e-8)
 
 best_alphas = torch.from_numpy(np.array(best_alphas))
-w_final = ridge_regression_fit_sklearn(X_train_normalized, y_train_normalized, best_alphas)
+w_final = ridge_regression_fit_sklearn(X_train_normalized, y_train_normalized, best_alphas, device=device)
 
 # 8. Use the coefficients of the final model to predict the (normalized) fMRI data and compute pearson's r and associated p-values per voxel.
-y_pred_final = ridge_regression_predict_torch(X_test_normalized, w_final)
+y_pred_final = ridge_regression_predict_torch(X_test_normalized, w_final, device=device)
 
 correlations, p_values = pearson_correlation(y_test_normalized, y_pred_final)
 print("correlations mean", correlations.mean())
