@@ -138,7 +138,7 @@ best_alphas = torch.from_numpy(np.array(best_alphas))
 w_final = ridge_regression_fit_sklearn(X_train_normalized, y_train_normalized, best_alphas, device=device)
 
 # 8. Use the coefficients of the final model to predict the (normalized) fMRI data and compute pearson's r and associated p-values per voxel.
-y_pred_final = ridge_regression_predict_torch(X_test_normalized, w_final, device=device)
+y_pred_final = ridge_regression_predict_torch(X_test_normalized, w_final)
 
 correlations, p_values = pearson_correlation(y_test_normalized, y_pred_final)
 print("correlations mean", correlations.mean())
