@@ -23,7 +23,7 @@ percentage = 1.
 # 0. load fmri data and annotation
 data_path_prefix = "./data/HP_data/fMRI"
 HF_home = "/SWS/llms/nobackup/"
-results_path_prefix = "./results"
+results_path_prefix = f"./results/results_word_shuffling_percentage{percentage}"
 
 fmri_data = np.load(f"{data_path_prefix}/data_subject_I.npy", allow_pickle=True) # raw fmri data for one subject
 fmri_time = np.load(f"{data_path_prefix}/time_fmri.npy", allow_pickle=True) # timing of each fmri TRs in seconds
@@ -109,9 +109,11 @@ gap = 15 # number of TRs to skip/discard in between train and test to avoid leak
 alphas = [0.1,1,10,100,1000,10000] # default vals from https://github.com/mtoneva/brain_language_nlp/blob/master/utils/utils.py 
 
 print("Starting nested blocked cross-validation to find the best alpha per voxel for ridge regression")
+X_cross_eval = X[:900]
+y_cross_eval = y[:900]
 # Obtain the best ridge regression penalties for each voxel independently (~25k alphas)
 best_alphas, outer_scores = nested_blocked_cv(
-    X, y,
+    X_cross_eval, y_cross_eval,
     split_function=split_function,
     block_labels=block_labels,
     n_splits_outer=n_splits_outer,
