@@ -4,7 +4,7 @@ import os
 import torch
 import torch
 from transformers import AutoTokenizer, AutoModel
-from typing import Optional, Union
+from typing import Optional, Union, List, Tuple
 import numexpr as ne
 
 import torch
@@ -15,6 +15,8 @@ import h5py
 import os.path
 import torch
 from typing import Optional, Union, List
+import random
+
 
 import numpy as np
 from scipy.stats import pearsonr
@@ -312,4 +314,34 @@ def normalize_train_test(
         return normalized_x, mean_blocks, std_blocks
 
 
+def shuffle_words(words: List[str], percentage: float, seed: int = 42, exclude_tokens: List[str] = ["\n\n"]) -> Tuple[List[str], List[int]]:
 
+    assert 0 <= percentage <= 1, "percentage must be between 0 and 1"
+
+    # Identify positions of words to consider for shuffling
+    shuffle_indices = [i for i, w in enumerate(words) if w not in exclude_tokens]
+    num_to_shuffle = int(len(shuffle_indices) * percentage)
+
+    if num_to_shuffle == 0:
+        return words.copy(), list(range(len(words)))
+
+    # Randomly sample indices to shuffle
+    random.seed(seed)
+    indices_to_shuffle = random.sample(shuffle_indices, num_to_shuffle)
+
+    # Extract and shuffle the selected words
+    words_to_shuffle = [words[i] for i in indices_to_shuffle]
+    random.shuffle(words_to_shuffle)
+
+    # Insert shuffled words back
+    shuffled_words = words.copy()
+    for idx, new_word in zip(indices_to_shuffle, words_to_shuffle):
+        shuffled_words[idx] = new_word
+
+    # Build inverse mapping (from new positions back to original indices)
+    inverse_indices = list(range(len(words)))
+    for i, new_word in zip(indices_to_shuffle, words_to_shuffle):
+        original_index = words.index(new_word)  # Caution: If duplicates exist, this gives first match
+        inverse_indices[i] = original_index
+
+    return shuffled_words, inverse_indices
