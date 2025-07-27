@@ -1,15 +1,24 @@
 from encoding import *
-from preprocessing import get_ordered_representations, normalize_train_test, concat_past_features, lanczosinterp2D, delete_block_edges
+from preprocessing import get_ordered_representations, normalize_train_test, concat_past_features, lanczosinterp2D, delete_block_edges, shuffle_words
 from encoding import nested_blocked_cv, ridge_regression_fit_sklearn, ridge_regression_predict_torch
 from analysis import pearson_correlation
 import h5py
 import os
 import numpy as np
 import torch
+import random
 from transformers import AutoTokenizer, AutoModel
+
+seed = 0
+random.seed(seed)
+torch.manual_seed(seed)
+np.random.seed(seed)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Using device: {device}")
+
+# Set parameters
+percentage = 1.
 
 # 0. load fmri data and annotation
 data_path_prefix = "./data/HP_data/fMRI"
@@ -22,6 +31,7 @@ fmri_runs = np.load(f"{data_path_prefix}/runs_fmri.npy", allow_pickle=True) # in
 stimuli_words = np.load(f"{data_path_prefix}/words_fmri.npy", allow_pickle=True) # list of words shown as stimuli (sequentially on a screen word by word)
 word_times = np.load(f"{data_path_prefix}/time_words_fmri.npy", allow_pickle=True) # timing in seconds of the words
 
+
 # 1. prepare the input sequence for the LLM (e.g. by changing formatting). Here we change "+" to "\n\n" and "@" to nothing (used to highlight italics)
 LLM_input_sequence = []
 for word in stimuli_words:
@@ -29,16 +39,21 @@ for word in stimuli_words:
     else LLM_input_sequence.append(word.replace("+", "\n\n").replace("@",""))
 assert len(word_times.tolist()) == len(LLM_input_sequence), "different length" # make sure we still have the same length as we have word timings.
 
+# 1.1 Shuffle words in the input sequence
+shuffled_LLM_input_sequence, shuffled_idx = shuffle_words(
+    LLM_input_sequence, percentage=percentage)
+
 # 2. compute LLM representations for these words.
 model_name = "meta-llama/Llama-3.2-1B"
 tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True, cache_dir=HF_home)
 model = AutoModel.from_pretrained(model_name, cache_dir=HF_home).to(device)
 print("Loaded model and tokenizer.")
 
-strings_to_find = LLM_input_sequence # we search for these words in sequential order in the full prompt to obtain avg representations for these.
-prompt_text = " ".join(LLM_input_sequence)
+strings_to_find = shuffled_LLM_input_sequence.copy() # we search for these words in sequential order in the full prompt to obtain avg representations for these.
+prompt_text = " ".join(shuffled_LLM_input_sequence)
 
 # compute representations 
+layer_idx = -7
 occurrences, representations = get_ordered_representations(
     ordered_strings_to_find=strings_to_find,
     prompt=prompt_text,
@@ -47,10 +62,12 @@ occurrences, representations = get_ordered_representations(
 )
 print("Computed word level representations for the input sequence.")
 
+# Reorder representations according to the shuffled indices
+reordered_representations = representations[layer_idx][shuffled_idx]
+
 # 3. Map from word-level LLM representations to TR level representations via Lanczos resampling
-layer_idx = -7 
 interpolated_representations = lanczosinterp2D(
-    representations[layer_idx].to("cpu"),             # shape: (n_samples_input, n_dim)
+    reordered_representations.to("cpu"),             # shape: (n_samples_input, n_dim)
     oldtime=word_times,      # shape: (n_samples_input,)
     newtime=fmri_time,     # shape: (n_samples_target,)
     window=3,         # (optional) number of lobes for the window
@@ -62,8 +79,6 @@ print("Interpolated LLM representations to match fMRI TRs via Lanczos downsampli
 # 4. Concatenate last x TRs of the LLM representation. No need to filter the first x features because we skip those anyway in the next step.
 N_lag = 4  # number of previous TRs to concatenate
 interpolated_representations = concat_past_features(torch.from_numpy(interpolated_representations), N_lag).numpy()
-
-# 4.5 (optional): apply PCA or other dimensionality reduction to the LLM representations
 
 
 # 5. Filter out TRs at the boundary of multiple runs

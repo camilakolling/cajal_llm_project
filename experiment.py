@@ -12,9 +12,9 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Using device: {device}")
 
 # 0. load fmri data and annotation
-data_path_prefix = "/BRAIN/neuroai_project/work/cajal_llm_project/data/HP_data/fMRI"
+data_path_prefix = "./data/HP_data/fMRI"
 HF_home = "/SWS/llms/nobackup/"
-results_path_prefix = "/BRAIN/neuroai_project/work/cajal_llm_project/results"
+results_path_prefix = "./results"
 
 fmri_data = np.load(f"{data_path_prefix}/data_subject_I.npy", allow_pickle=True) # raw fmri data for one subject
 fmri_time = np.load(f"{data_path_prefix}/time_fmri.npy", allow_pickle=True) # timing of each fmri TRs in seconds
