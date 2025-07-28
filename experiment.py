@@ -1,7 +1,7 @@
 from encoding import *
 from preprocessing import get_ordered_representations, normalize_train_test, concat_past_features, lanczosinterp2D, delete_block_edges
 from encoding import nested_blocked_cv, ridge_regression_fit_sklearn, ridge_regression_predict_torch
-from analysis import pearson_correlation
+from analysis import pearson_correlation, permutation_test_with_correction
 import h5py
 import os
 import numpy as np
@@ -133,6 +133,7 @@ y_pred_final = ridge_regression_predict_torch(X_test_normalized, w_final)
 correlations, p_values = pearson_correlation(y_test_normalized, y_pred_final)
 print("correlations mean", correlations.mean())
 print("Number of significant voxels: ", len([v for v in p_values.cpu().numpy().tolist() if v <0.01]))
+corrected_pvalues = permutation_test_with_correction(y_pred_final, y_test_normalized)
 
 # 9. Save results into h5. 
 # Why h5? We do not need to load everything at once, and it allows to have meta-data and structure without using pickle.
@@ -156,4 +157,5 @@ with h5py.File(results_filename, write_mode) as f:
     group.create_dataset('p_values', data=p_values.cpu().numpy()) # save p value per voxel
     group.create_dataset("coefficients", data= w_final.cpu().numpy()) # save coefficients
     group.create_dataset("alphas", data=np.array(best_alphas))
+    group.create_dataset('corrected_pvalues', data=corrected_pvalues.cpu().numpy()) # save corrected p-values per voxel
 print("DONE")
