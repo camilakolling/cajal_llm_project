@@ -1,6 +1,6 @@
 import argparse
 from encoding import *
-from preprocessing import get_ordered_representations, normalize_train_test, concat_past_features, lanczosinterp2D, delete_block_edges
+from preprocessing import get_ordered_representations, normalize_train_test, concat_past_features, lanczosinterp2D, delete_block_edges, shuffle_words
 from encoding import nested_blocked_cv, ridge_regression_fit_sklearn, ridge_regression_predict_torch
 from analysis import pearson_correlation, permutation_test_with_correction
 import h5py
