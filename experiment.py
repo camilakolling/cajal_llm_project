@@ -132,7 +132,7 @@ def main(args):
     correlations, p_values = pearson_correlation(y_test_normalized, y_pred_final)
     print("correlations mean", correlations.mean())
     print("Number of significant voxels: ", len([v for v in p_values.cpu().numpy().tolist() if v <0.01]))
-    corrected_pvalues = permutation_test_with_correction(y_pred_final, y_test_normalized)
+    corrected_pvalues = permutation_test_with_correction(y_pred_final.cpu().numpy(), y_test_normalized.cpu().numpy())
 
     # 9. Save results into h5. 
     # Why h5? We do not need to load everything at once, and it allows to have meta-data and structure without using pickle.
