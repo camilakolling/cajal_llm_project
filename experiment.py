@@ -174,8 +174,12 @@ def main(args):
         group.create_dataset("coefficients", data= w_final.cpu().numpy()) # save coefficients
         group.create_dataset("alphas", data=np.array(best_alphas))
         group.create_dataset('corrected_pvalues', data=corrected_pvalues.cpu().numpy()) # save corrected p-values per voxel
+        group.create_dataset("seed", data=args.seed)
 
-        group.create_dataset('experiment_info', data=args.experiment_folder) 
+        group.create_dataset('experiment_info', data=args.experiment_folder)
+        if args.shuffle_words:
+            group.create_dataset('shuffled_idx', data=shuffled_idx)
+            group.create_dataset('percentage', data=args.percentage)
     print("DONE")
 
 if __name__ == "__main__":
