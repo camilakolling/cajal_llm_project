@@ -176,7 +176,10 @@ def permutation_test_with_correction(predictions, # n_voxels, n_TRs
             permuted_predictions[:, start:end] = permuted_block
 
         # Step 4.1: Compute correlations for permuted predictions
-        permuted_corrs[i] = pearson_correlation(permuted_predictions, ground_truth)[0].cpu().numpy().tolist()  # This computes the correlation for each voxel
+        # permuted_corrs[i] = pearson_correlation(permuted_predictions, ground_truth)[0].cpu().numpy().tolist()  # This computes the correlation for each voxel
+        permuted_corrs[i] = pearson_correlation(
+            torch.tensor(permuted_predictions), torch.tensor(ground_truth)
+        )[0].cpu().numpy().tolist()
         #for v in range(n_voxels):
         #    permuted_corrs[i, v] = pearsonr(permuted_predictions[v], ground_truth[v])[0]
 
