@@ -171,14 +171,15 @@ def main(args):
             del f[representation_name]
             
         group = f.create_group(representation_name)
+        group.create_dataset("seed", data=args.seed)
         group.create_dataset('predictions', data=y_pred_final.cpu().numpy()) # save results as datasets
         group.create_dataset('ground_truth', data=y_test_normalized.cpu().numpy()) # save ground truth as datasets    
         group.create_dataset('correlations', data=correlations.cpu().numpy()) # save correlations per voxel
         group.create_dataset('p_values', data=p_values.cpu().numpy()) # save p value per voxel
         group.create_dataset("coefficients", data= w_final.cpu().numpy()) # save coefficients
         group.create_dataset("alphas", data=np.array(best_alphas))
-        group.create_dataset('corrected_pvalues', data=corrected_pvalues.cpu().numpy()) # save corrected p-values per voxel
-        group.create_dataset("seed", data=args.seed)
+        if corrected_pvalues is not None:
+            group.create_dataset('corrected_pvalues', data=corrected_pvalues.cpu().numpy()) # save corrected p-values per voxel
 
         group.create_dataset('experiment_info', data=args.experiment_folder)
         if args.shuffle_words:
