@@ -75,7 +75,7 @@ reordered_representations = representations[layer_idx][shuffled_idx]
 
 # 3. Map from word-level LLM representations to TR level representations via Lanczos resampling
 interpolated_representations = lanczosinterp2D(
-    reordered_representations.to(device),             # shape: (n_samples_input, n_dim)
+    reordered_representations.to("cpu"),             # shape: (n_samples_input, n_dim)
     oldtime=word_times,      # shape: (n_samples_input,)
     newtime=fmri_time,     # shape: (n_samples_target,)
     window=3,         # (optional) number of lobes for the window
