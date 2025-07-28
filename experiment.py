@@ -8,6 +8,12 @@ import numpy as np
 import torch
 from transformers import AutoTokenizer, AutoModel
 
+def create_path(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+        print(f"Created directory: {path}")
+
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Using device: {device}")
 
@@ -15,6 +21,7 @@ print(f"Using device: {device}")
 data_path_prefix = "./data/HP_data/fMRI"
 HF_home = "/SWS/llms/nobackup/"
 results_path_prefix = "./results/original_code"
+create_path(results_path_prefix)
 
 fmri_data = np.load(f"{data_path_prefix}/data_subject_I.npy", allow_pickle=True) # raw fmri data for one subject
 fmri_time = np.load(f"{data_path_prefix}/time_fmri.npy", allow_pickle=True) # timing of each fmri TRs in seconds
