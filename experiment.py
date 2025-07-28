@@ -38,6 +38,12 @@ def main(args):
         else LLM_input_sequence.append(word.replace("+", "\n\n").replace("@",""))
     assert len(word_times.tolist()) == len(LLM_input_sequence), "different length" # make sure we still have the same length as we have word timings.
 
+    if args.shuffle_words:
+        # 1.1 Shuffle words in the input sequence
+        print(f"Shuffling words in the input sequence with percentage {args.percentage}")
+        LLM_input_sequence, shuffled_idx = shuffle_words(
+            LLM_input_sequence, percentage=args.percentage)
+
     # 2. compute LLM representations for these words.
     model_name = "meta-llama/Llama-3.2-1B"
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True, cache_dir=args.HF_home)
@@ -56,9 +62,15 @@ def main(args):
     )
     print("Computed word level representations for the input sequence.")
 
+    if args.shuffle_words:
+        # Reorder representations according to the shuffled indices
+        representations = representations[args.layer_idx][shuffled_idx].to("cpu")
+    else:
+        representations = representations[args.layer_idx].to("cpu")
+
     # 3. Map from word-level LLM representations to TR level representations via Lanczos resampling
     interpolated_representations = lanczosinterp2D(
-        representations[args.layer_idx].to("cpu"),             # shape: (n_samples_input, n_dim)
+        representations,             # shape: (n_samples_input, n_dim)
         oldtime=word_times,      # shape: (n_samples_input,)
         newtime=fmri_time,     # shape: (n_samples_target,)
         window=3,         # (optional) number of lobes for the window
@@ -138,7 +150,9 @@ def main(args):
     # Why h5? We do not need to load everything at once, and it allows to have meta-data and structure without using pickle.
     # check if h5 file already exists
     results_path = os.path.join(args.results_folder, args.experiment_folder)
-    print(f"Results path prefix: {results_path}")
+    if args.shuffle_words:
+        results_path = os.path.join(results_path, f"percentage{args.percentage}")
+    print(f"Results path: {results_path}")
     create_path(results_path)
     results_filename = os.path.join(results_path, "results_encoding_model.h5")
     representation_name = f"layer {args.layer_idx}"
@@ -174,6 +188,9 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=0, help="Random seed for reproducibility.")
     
     parser.add_argument("--experiment_folder", type=str, default=None, required=True, help="Path to save results.")
+
+    parser.add_argument("--shuffle_words", action='store_true', help="Whether to shuffle words in the input sequence.")
+    parser.add_argument("--percentage", type=float, default=1.0, help="Percentage of words to shuffle if --shuffle_words is set.")
 
     args = parser.parse_args()
     print(f"Using device: {device}")
