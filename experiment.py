@@ -144,6 +144,7 @@ def main(args):
     correlations, p_values = pearson_correlation(y_test_normalized, y_pred_final)
     print("correlations mean", correlations.mean())
     print("Number of significant voxels: ", len([v for v in p_values.cpu().numpy().tolist() if v <0.01]))
+    print(y_pred_final.shape, y_test_normalized.shape)
     corrected_pvalues = permutation_test_with_correction(y_pred_final.cpu(), y_test_normalized.cpu())
 
     # 9. Save results into h5. 
