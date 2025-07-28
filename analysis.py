@@ -153,7 +153,8 @@ def permutation_test_with_correction(predictions, # n_voxels, n_TRs
     returns:
     corrected_p_values (per voxel)
     """
-    n_voxels, n_timesteps = predictions.shape
+    # n_voxels, n_timesteps = predictions.shape
+    n_timesteps, n_voxels = predictions.shape
 
     # Step 3: Compute original correlations for each voxel
     original_corrs = np.array([
