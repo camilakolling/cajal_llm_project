@@ -64,6 +64,7 @@ def main(args):
 
     if args.shuffle_words:
         # Reorder representations according to the shuffled indices
+        print("Reordering representations according to the shuffled indices.")
         representations = representations[args.layer_idx][shuffled_idx].to("cpu")
     else:
         representations = representations[args.layer_idx].to("cpu")
