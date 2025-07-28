@@ -14,7 +14,7 @@ print(f"Using device: {device}")
 # 0. load fmri data and annotation
 data_path_prefix = "./data/HP_data/fMRI"
 HF_home = "/SWS/llms/nobackup/"
-results_path_prefix = "./results/results_original_code_X900"
+results_path_prefix = "./results/original_code_X900"
 
 fmri_data = np.load(f"{data_path_prefix}/data_subject_I.npy", allow_pickle=True) # raw fmri data for one subject
 fmri_time = np.load(f"{data_path_prefix}/time_fmri.npy", allow_pickle=True) # timing of each fmri TRs in seconds
@@ -50,7 +50,7 @@ print("Computed word level representations for the input sequence.")
 # 3. Map from word-level LLM representations to TR level representations via Lanczos resampling
 layer_idx = -7 
 interpolated_representations = lanczosinterp2D(
-    representations[layer_idx].to("cpu"),             # shape: (n_samples_input, n_dim)
+    representations[layer_idx].to(device),             # shape: (n_samples_input, n_dim)
     oldtime=word_times,      # shape: (n_samples_input,)
     newtime=fmri_time,     # shape: (n_samples_target,)
     window=3,         # (optional) number of lobes for the window
