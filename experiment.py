@@ -137,7 +137,10 @@ def main(args):
     # 9. Save results into h5. 
     # Why h5? We do not need to load everything at once, and it allows to have meta-data and structure without using pickle.
     # check if h5 file already exists
-    results_filename = os.path.join(args.results_path_prefix, "results_encoding_model.h5")
+    results_path = os.path.join(args.results_folder, args.experiment_folder)
+    print(f"Results path prefix: {results_path}")
+    create_path(results_path)
+    results_filename = os.path.join(results_path, "results_encoding_model.h5")
     representation_name = f"layer {args.layer_idx}"
     write_mode = "a" if os.path.isfile(results_filename) else "w" # append if file already exists
 
@@ -157,23 +160,23 @@ def main(args):
         group.create_dataset("coefficients", data= w_final.cpu().numpy()) # save coefficients
         group.create_dataset("alphas", data=np.array(best_alphas))
         group.create_dataset('corrected_pvalues', data=corrected_pvalues.cpu().numpy()) # save corrected p-values per voxel
+
+        group.create_dataset('experiment_info', data=args.experiment_folder) 
     print("DONE")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run encoding model experiment.")
     parser.add_argument("--data_path_prefix", type=str, default="./data/HP_data/fMRI", help="Path to the fMRI data.")
     parser.add_argument("--HF_home", type=str, default="/SWS/llms/nobackup/", help="Path to the Hugging Face cache directory.")
+    parser.add_argument("--results_folder", type=str, default="./results/", required=False, help="Path to save results.")
 
     parser.add_argument("--layer_idx", type=int, default=-7, required=False, help="Layer index to use.")
     parser.add_argument("--seed", type=int, default=0, help="Random seed for reproducibility.")
-
-    parser.add_argument("--results_path_prefix", type=str, default=None, required=True, help="Path to save results.")
+    
+    parser.add_argument("--experiment_folder", type=str, default=None, required=True, help="Path to save results.")
 
     args = parser.parse_args()
     print(f"Using device: {device}")
-
-    print(f"Results path prefix: {args.results_path_prefix}")
-    create_path(args.results_path_prefix)
 
     set_seed(args.seed)
 
