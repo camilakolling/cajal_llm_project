@@ -6,6 +6,7 @@ from analysis import pearson_correlation, permutation_test_with_correction
 import h5py
 import os
 import numpy as np
+import random
 import torch
 from transformers import AutoTokenizer, AutoModel
 
@@ -16,7 +17,11 @@ def create_path(path):
         os.makedirs(path)
         print(f"Created directory: {path}")
 
-
+def set_seed(seed):
+    random.seed(seed)
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    print(f"Set random seed to {seed}")
 
 def main(args):
     # 0. load fmri data and annotation
@@ -160,6 +165,7 @@ if __name__ == "__main__":
     parser.add_argument("--HF_home", type=str, default="/SWS/llms/nobackup/", help="Path to the Hugging Face cache directory.")
 
     parser.add_argument("--layer_idx", type=int, default=-7, required=False, help="Layer index to use.")
+    parser.add_argument("--seed", type=int, default=0, help="Random seed for reproducibility.")
 
     parser.add_argument("--results_path_prefix", type=str, default=None, required=True, help="Path to save results.")
 
@@ -168,5 +174,7 @@ if __name__ == "__main__":
 
     print(f"Results path prefix: {args.results_path_prefix}")
     create_path(args.results_path_prefix)
+
+    set_seed(args.seed)
 
     main(args)
