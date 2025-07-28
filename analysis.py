@@ -190,5 +190,5 @@ def permutation_test_with_correction(predictions, # n_voxels, n_TRs
     # multipletests returns: reject, pvals_corrected, alphacSidak, alphacBonf
     _, pvals_corrected, _, _ = multipletests(p_values, alpha=alpha, method=correction_type)  # 'holm' for Holm-Bonferroni
 
-    return p_values
+    return pvals_corrected
 
